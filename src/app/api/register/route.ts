@@ -30,8 +30,6 @@ export async function POST(request: NextRequest) {
 
   const payload = await request.json().catch(() => null);
 
-  console.log('PAYLOAD RECEBIDO:', payload);
-
   const parsed = registerSchema.safeParse(payload);
 
   if (!parsed.success) {

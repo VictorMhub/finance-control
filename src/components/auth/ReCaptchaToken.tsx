@@ -26,7 +26,6 @@ export function ReCaptchaToken({
 }: Props) {
   const siteKey =
     process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
-    console.log('RECAPTCHA SITE KEY:', siteKey);
 
   const [scriptLoaded, setScriptLoaded] =
     useState(false);
@@ -52,11 +51,6 @@ export function ReCaptchaToken({
 
     window.grecaptcha.ready(async () => {
       try {
-        console.log(
-          'Gerando token reCAPTCHA...',
-          action
-        );
-
         const token =
           await window.grecaptcha!.execute(
             siteKey,
@@ -65,10 +59,6 @@ export function ReCaptchaToken({
             }
           );
 
-        console.log(
-          'TOKEN RECAPTCHA GERADO:',
-          token
-        );
 
         onToken(token);
       } catch (error) {

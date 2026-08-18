@@ -31,10 +31,6 @@ export function AuthForm({ mode }: Props) {
   const isRegister = mode === 'register';
   const handleCaptcha = useCallback(
   (token: string) => {
-    console.log(
-      'TOKEN RECEBIDO DO RECAPTCHA:',
-      token
-    );
 
     setCaptchaToken(token);
   },
@@ -43,7 +39,6 @@ export function AuthForm({ mode }: Props) {
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    console.log('CAPTCHA NO SUBMIT:', captchaToken);
     if (!captchaToken) {
       setError('Aguarde a validação de segurança e tente novamente.');
       return;
@@ -63,7 +58,6 @@ export function AuthForm({ mode }: Props) {
     };
 
     if (isRegister) {
-      console.log('PAYLOAD REGISTER:', payload);
       const response = await fetch('/api/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

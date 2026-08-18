@@ -58,20 +58,39 @@ export function AuthForm({ mode }: Props) {
     };
 
     if (isRegister) {
-      const response = await fetch('/api/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      if (!response.ok) {
-        const body = (await response.json().catch(() => ({}))) as {
-          error?: string;
-        };
-        setError(body.error ?? 'Não foi possível criar sua conta.');
-        setLoading(false);
-        return;
-      }
-    }
+  const response = await fetch('/api/register', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(payload)
+  });
+
+  if (!response.ok) {
+    const body =
+      (await response
+        .json()
+        .catch(() => ({}))) as {
+        error?: string;
+      };
+
+    setError(
+      body.error ??
+        'Não foi possível criar sua conta.'
+    );
+
+    setLoading(false);
+    return;
+  }
+
+  // Cadastro realizado com sucesso.
+  // Não reutiliza o CAPTCHA para login.
+  setLoading(false);
+
+  router.push('/login');
+
+  return;
+}
 
     const result = await signIn('credentials', {
       email: payload.email,

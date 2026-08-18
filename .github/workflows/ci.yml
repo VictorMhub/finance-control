@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    env:
+      NEXTAUTH_URL: http://localhost:3000
+      NEXTAUTH_SECRET: ci-secret-change-in-production
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/finance_control?schema=public
+      RECAPTCHA_SECRET_KEY: test-secret
+      NEXT_PUBLIC_RECAPTCHA_SITE_KEY: test-site
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: finance_control
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npx prisma generate
+      - run: npm run lint
+      - run: npm run test:coverage
+      - run: npm run build

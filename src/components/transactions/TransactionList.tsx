@@ -1,3 +1,4 @@
+'use client';
 import { Badge, Box, HStack, Stack, Text, useColorModeValue } from '@chakra-ui/react';
 import type { TransactionView } from '@/types/finance';
 import { toCurrency } from '@/utils/finance';

@@ -29,13 +29,31 @@ export function AuthForm({ mode }: Props) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const isRegister = mode === 'register';
-  const handleCaptcha = useCallback((token: string) => setCaptchaToken(token), []);
+  const handleCaptcha = useCallback(
+  (token: string) => {
+    console.log(
+      'TOKEN RECEBIDO DO RECAPTCHA:',
+      token
+    );
+
+    setCaptchaToken(token);
+  },
+  []
+);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    console.log('CAPTCHA NO SUBMIT:', captchaToken);
+    if (!captchaToken) {
+      setError('Aguarde a validação de segurança e tente novamente.');
+      return;
+    }
+
     setLoading(true);
     setError('');
+
     const form = new FormData(event.currentTarget);
+
     const payload = {
       name: String(form.get('name') ?? ''),
       email: String(form.get('email') ?? ''),
@@ -45,13 +63,16 @@ export function AuthForm({ mode }: Props) {
     };
 
     if (isRegister) {
+      console.log('PAYLOAD REGISTER:', payload);
       const response = await fetch('/api/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
       if (!response.ok) {
-        const body = (await response.json().catch(() => ({}))) as { error?: string };
+        const body = (await response.json().catch(() => ({}))) as {
+          error?: string;
+        };
         setError(body.error ?? 'Não foi possível criar sua conta.');
         setLoading(false);
         return;
@@ -71,12 +92,29 @@ export function AuthForm({ mode }: Props) {
   }
 
   return (
-    <Box minH="100vh" bg="gray.50" px={4} py={8} display="grid" placeItems="center">
-      <Box as="main" bg="white" w="full" maxW="md" p={6} borderRadius="2xl" boxShadow="lg">
+    <Box
+      minH="100vh"
+      bg="gray.50"
+      px={4}
+      py={8}
+      display="grid"
+      placeItems="center"
+    >
+      <Box
+        as="main"
+        bg="white"
+        w="full"
+        maxW="md"
+        p={6}
+        borderRadius="2xl"
+        boxShadow="lg"
+      >
         <Stack spacing={6}>
           <Stack spacing={2}>
             <Heading size="lg">{isRegister ? 'Criar conta' : 'Entrar'}</Heading>
-            <Text color="gray.600">Controle seus gastos com segurança e clareza.</Text>
+            <Text color="gray.600">
+              Controle seus gastos com segurança e clareza.
+            </Text>
           </Stack>
 
           {error && (
@@ -96,21 +134,49 @@ export function AuthForm({ mode }: Props) {
               )}
               <FormControl isRequired>
                 <FormLabel htmlFor="email">Email</FormLabel>
-                <Input id="email" name="email" type="email" autoComplete="email" />
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  autoComplete="email"
+                  placeholder="seu.email@exemplo.com"
+                />
               </FormControl>
               <FormControl isRequired>
                 <FormLabel htmlFor="password">Senha</FormLabel>
-                <Input id="password" name="password" type="password" minLength={8} autoComplete={isRegister ? 'new-password' : 'current-password'} />
+                <Input
+                  id="password"
+                  name="password"
+                  type="password"
+                  minLength={8}
+                  autoComplete={
+                    isRegister ? 'new-password' : 'current-password'
+                  }
+                />
               </FormControl>
               {isRegister && (
                 <FormControl>
                   <FormLabel htmlFor="monthlyIncome">Renda mensal</FormLabel>
-                  <Input id="monthlyIncome" name="monthlyIncome" type="number" min={0} step="0.01" defaultValue="0" />
+                  <Input
+                    id="monthlyIncome"
+                    name="monthlyIncome"
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    placeholder="0.00"
+                  />
                 </FormControl>
               )}
-              <input name="captchaToken" type="hidden" value={captchaToken} readOnly />
+              <input
+                name="captchaToken"
+                type="hidden"
+                value={captchaToken}
+                readOnly
+              />
               <ReCaptchaToken action={mode} onToken={handleCaptcha} />
-              <Text fontSize="xs" color="gray.500">Este formulário usa reCAPTCHA para prevenir credential stuffing.</Text>
+              <Text fontSize="xs" color="gray.500">
+                Este formulário usa reCAPTCHA para prevenir credential stuffing.
+              </Text>
               <Button type="submit" isLoading={loading} w="full">
                 {isRegister ? 'Cadastrar' : 'Entrar'}
               </Button>
@@ -119,7 +185,11 @@ export function AuthForm({ mode }: Props) {
 
           <Text fontSize="sm" color="gray.600">
             {isRegister ? 'Já tem conta?' : 'Ainda não tem conta?'}{' '}
-            <Link as={NextLink} color="brand.600" href={isRegister ? '/login' : '/register'}>
+            <Link
+              as={NextLink}
+              color="brand.600"
+              href={isRegister ? '/login' : '/register'}
+            >
               {isRegister ? 'Entrar' : 'Criar conta'}
             </Link>
           </Text>

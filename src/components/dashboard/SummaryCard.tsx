@@ -1,3 +1,4 @@
+'use client';
 import { Box, SimpleGrid, Stat, StatLabel, StatNumber, Text, useColorModeValue } from '@chakra-ui/react';
 import { toCurrency } from '@/utils/finance';
 

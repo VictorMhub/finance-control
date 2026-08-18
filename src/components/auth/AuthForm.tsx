@@ -19,9 +19,28 @@ import {
 import { useRouter } from 'next/navigation';
 import { ReCaptchaToken } from './ReCaptchaToken';
 
+type CaptchaProps = {
+  action: 'login' | 'register';
+  onToken: (token: string) => void;
+};
+
+const CaptchaGate = ReCaptchaToken as React.ComponentType<CaptchaProps>;
+
 type Props = {
   mode: 'login' | 'register';
 };
+
+declare global {
+  interface Window {
+    grecaptcha?: {
+      ready: (callback: () => void) => void;
+      execute: (
+        siteKey: string,
+        options: { action: string }
+      ) => Promise<string>;
+    };
+  }
+}
 
 export function AuthForm({ mode }: Props) {
   const router = useRouter();
@@ -37,72 +56,134 @@ export function AuthForm({ mode }: Props) {
   []
 );
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!captchaToken) {
-      setError('Aguarde a validação de segurança e tente novamente.');
-      return;
-    }
+async function generateCaptchaToken(
+  action: string
+): Promise<string> {
+  const siteKey =
+    process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
 
-    setLoading(true);
-    setError('');
+  if (!siteKey) {
+    throw new Error(
+      'Site key do reCAPTCHA não configurada.'
+    );
+  }
 
-    const form = new FormData(event.currentTarget);
+  if (!window.grecaptcha) {
+    throw new Error(
+      'reCAPTCHA ainda não carregado.'
+    );
+  }
+
+  return new Promise((resolve, reject) => {
+    window.grecaptcha!.ready(async () => {
+      try {
+        const token =
+          await window.grecaptcha!.execute(
+            siteKey,
+            { action }
+          );
+
+        resolve(token);
+      } catch (error) {
+        reject(error);
+      }
+    });
+  });
+}
+
+ async function handleSubmit(
+  event: React.FormEvent<HTMLFormElement>
+) {
+  event.preventDefault();
+
+  setLoading(true);
+  setError('');
+
+  try {
+    const captchaToken =
+      await generateCaptchaToken(mode);
+
+    console.log(
+      'Novo token CAPTCHA gerado:',
+      Boolean(captchaToken)
+    );
+
+    const form =
+      new FormData(event.currentTarget);
 
     const payload = {
       name: String(form.get('name') ?? ''),
       email: String(form.get('email') ?? ''),
-      password: String(form.get('password') ?? ''),
-      monthlyIncome: Number(form.get('monthlyIncome') ?? 0),
+      password: String(
+        form.get('password') ?? ''
+      ),
+      monthlyIncome: Number(
+        form.get('monthlyIncome') ?? 0
+      ),
       captchaToken
     };
 
     if (isRegister) {
-  const response = await fetch('/api/register', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(payload)
-  });
+      const response = await fetch(
+        '/api/register',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type':
+              'application/json'
+          },
+          body: JSON.stringify(payload)
+        }
+      );
 
-  if (!response.ok) {
-    const body =
-      (await response
-        .json()
-        .catch(() => ({}))) as {
-        error?: string;
-      };
+      if (!response.ok) {
+        const body =
+          (await response
+            .json()
+            .catch(() => ({}))) as {
+            error?: string;
+          };
 
-    setError(
-      body.error ??
-        'Não foi possível criar sua conta.'
+        setError(
+          body.error ??
+            'Não foi possível criar sua conta.'
+        );
+
+        setLoading(false);
+        return;
+      }
+    }
+
+    const result = await signIn(
+      'credentials',
+      {
+        email: payload.email,
+        password: payload.password,
+        captchaToken,
+        redirect: false
+      }
     );
 
+    if (result?.ok) {
+      router.push('/dashboard');
+    } else {
+      setError(
+        'Email, senha ou CAPTCHA inválidos.'
+      );
+    }
+  } catch (error) {
+    console.error(
+      'Erro ao gerar CAPTCHA:',
+      error
+    );
+
+    setError(
+      'Não foi possível realizar a validação de segurança. Tente novamente.'
+    );
+  } finally {
     setLoading(false);
-    return;
   }
-
-  // Cadastro realizado com sucesso.
-  // Não reutiliza o CAPTCHA para login.
-  setLoading(false);
-
-  router.push('/login');
-
-  return;
 }
-
-    const result = await signIn('credentials', {
-      email: payload.email,
-      password: payload.password,
-      captchaToken,
-      redirect: false
-    });
-
-    setLoading(false);
-    if (result?.ok) router.push('/dashboard');
-    else setError('Email, senha ou CAPTCHA inválidos.');
-  }
 
   return (
     <Box
@@ -186,7 +267,7 @@ export function AuthForm({ mode }: Props) {
                 value={captchaToken}
                 readOnly
               />
-              <ReCaptchaToken action={mode} onToken={handleCaptcha} />
+              <ReCaptchaToken />
               <Text fontSize="xs" color="gray.500">
                 Este formulário usa reCAPTCHA para prevenir credential stuffing.
               </Text>

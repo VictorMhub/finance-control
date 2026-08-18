@@ -1,7 +1,7 @@
 'use client';
 
 import Script from 'next/script';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback } from 'react';
 
 type Props = {
   action: string;
@@ -27,30 +27,29 @@ export function ReCaptchaToken({
   const siteKey =
     process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
 
-  const [scriptLoaded, setScriptLoaded] =
-    useState(false);
-
   const generateToken = useCallback(() => {
     if (!siteKey) {
       console.error(
-        'NEXT_PUBLIC_RECAPTCHA_SITE_KEY não configurada.'
+        'RECAPTCHA: site key não encontrada.'
       );
-
       onToken('');
       return;
     }
 
     if (!window.grecaptcha) {
       console.error(
-        'grecaptcha ainda não está disponível.'
+        'RECAPTCHA: grecaptcha não carregado.'
       );
-
       onToken('');
       return;
     }
 
     window.grecaptcha.ready(async () => {
       try {
+        console.log(
+          `Gerando token reCAPTCHA para: ${action}`
+        );
+
         const token =
           await window.grecaptcha!.execute(
             siteKey,
@@ -59,6 +58,9 @@ export function ReCaptchaToken({
             }
           );
 
+        console.log(
+          `Token reCAPTCHA gerado para: ${action}`
+        );
 
         onToken(token);
       } catch (error) {
@@ -72,34 +74,19 @@ export function ReCaptchaToken({
     });
   }, [action, onToken, siteKey]);
 
-  useEffect(() => {
-    if (!scriptLoaded) return;
-
-    generateToken();
-  }, [scriptLoaded, generateToken]);
-
   if (!siteKey) {
-    console.error(
-      'RECAPTCHA: site key não encontrada.'
-    );
-
     return null;
   }
 
   return (
     <Script
+      id="google-recaptcha-v3"
       src={`https://www.google.com/recaptcha/api.js?render=${siteKey}`}
       strategy="afterInteractive"
-      onLoad={() => {
-        console.log(
-          'Script do reCAPTCHA carregado.'
-        );
-
-        setScriptLoaded(true);
-      }}
+      onReady={generateToken}
       onError={(error) => {
         console.error(
-          'Erro ao carregar script reCAPTCHA:',
+          'Erro ao carregar reCAPTCHA:',
           error
         );
 

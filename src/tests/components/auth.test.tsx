@@ -14,20 +14,7 @@ jest.mock('next/navigation', () => ({
 }));
 
 jest.mock('@/components/auth/ReCaptchaToken', () => ({
-  ReCaptchaToken: ({
-    onToken
-  }: {
-    onToken(token: string): void;
-  }) => {
-    const { useEffect } =
-      jest.requireActual('react') as typeof import('react');
-
-    useEffect(() => {
-      onToken('test-captcha');
-    }, [onToken]);
-
-    return null;
-  }
+  ReCaptchaToken: () => null
 }));
 
 function renderWithChakra(ui: React.ReactElement) {
@@ -44,14 +31,24 @@ describe('AuthForm', () => {
   const push = jest.fn();
 
   beforeEach(() => {
-    jest.clearAllMocks();
+  jest.clearAllMocks();
 
-    (useRouter as jest.Mock).mockReturnValue({
-      push
-    });
-
-    global.fetch = jest.fn();
+  (useRouter as jest.Mock).mockReturnValue({
+    push
   });
+
+  global.fetch = jest.fn();
+
+  (window as any).grecaptcha = {
+    ready: jest.fn(
+      (callback: () => void) => callback()
+    ),
+
+    execute: jest
+      .fn()
+      .mockResolvedValue('test-captcha')
+  };
+});
 
   it('signs in and redirects from login', async () => {
     (signIn as jest.Mock).mockResolvedValue({

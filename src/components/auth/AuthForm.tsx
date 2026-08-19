@@ -91,46 +91,59 @@ async function generateCaptchaToken(
   });
 }
 
- async function handleSubmit(
+async function handleSubmit(
   event: React.FormEvent<HTMLFormElement>
 ) {
   event.preventDefault();
 
+  // IMPORTANTE:
+  // captura o formulário antes de qualquer await
+  const form = new FormData(event.currentTarget);
+
   setLoading(true);
   setError('');
 
+  let captchaToken: string;
+
   try {
-    const captchaToken =
-      await generateCaptchaToken(mode);
+    captchaToken = await generateCaptchaToken(mode);
 
     console.log(
       'Novo token CAPTCHA gerado:',
       Boolean(captchaToken)
     );
+  } catch (error) {
+    console.error(
+      'Erro ao gerar CAPTCHA:',
+      error
+    );
 
-    const form =
-      new FormData(event.currentTarget);
+    setError(
+      'Não foi possível realizar a validação de segurança. Tente novamente.'
+    );
 
-    const payload = {
-      name: String(form.get('name') ?? ''),
-      email: String(form.get('email') ?? ''),
-      password: String(
-        form.get('password') ?? ''
-      ),
-      monthlyIncome: Number(
-        form.get('monthlyIncome') ?? 0
-      ),
-      captchaToken
-    };
+    setLoading(false);
+    return;
+  }
 
+  const payload = {
+    name: String(form.get('name') ?? ''),
+    email: String(form.get('email') ?? ''),
+    password: String(form.get('password') ?? ''),
+    monthlyIncome: Number(
+      form.get('monthlyIncome') ?? 0
+    ),
+    captchaToken
+  };
+
+  try {
     if (isRegister) {
       const response = await fetch(
         '/api/register',
         {
           method: 'POST',
           headers: {
-            'Content-Type':
-              'application/json'
+            'Content-Type': 'application/json'
           },
           body: JSON.stringify(payload)
         }
@@ -149,9 +162,11 @@ async function generateCaptchaToken(
             'Não foi possível criar sua conta.'
         );
 
-        setLoading(false);
         return;
       }
+
+      router.push('/login');
+      return;
     }
 
     const result = await signIn(
@@ -173,12 +188,12 @@ async function generateCaptchaToken(
     }
   } catch (error) {
     console.error(
-      'Erro ao gerar CAPTCHA:',
+      'Erro na autenticação:',
       error
     );
 
     setError(
-      'Não foi possível realizar a validação de segurança. Tente novamente.'
+      'Não foi possível concluir a operação. Tente novamente.'
     );
   } finally {
     setLoading(false);
